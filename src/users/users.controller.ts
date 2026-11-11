@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../common/enums/role.enum';
 import {
@@ -8,8 +8,10 @@ import {
 import { Roles } from '../decorators/roles.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
-import { SafeUser } from './utils/sanitize-user.util';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './users.service';
+import { SafeUser } from './utils/sanitize-user.util';
 
 @ApiTags('Users')
 @Controller('users')
@@ -21,6 +23,24 @@ export class UsersController {
   @ApiOperation({ summary: 'Get authenticated user profile' })
   getProfile(@CurrentUser() user: AuthenticatedUser): Promise<SafeUser> {
     return this.usersService.getProfile(user.id);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update authenticated user name and phone' })
+  updateProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateProfileDto,
+  ): Promise<SafeUser> {
+    return this.usersService.updateProfile(user.id, dto);
+  }
+
+  @Patch('password')
+  @ApiOperation({ summary: 'Change authenticated user password' })
+  changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    return this.usersService.changePassword(user.id, dto);
   }
 
   @Get()
