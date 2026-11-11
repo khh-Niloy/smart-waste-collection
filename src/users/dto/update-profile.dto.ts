@@ -21,4 +21,3 @@ export class UpdateProfileDto {
   @MaxLength(30, { message: 'Phone number must not exceed 30 characters' })
   phone?: string;
 }
-

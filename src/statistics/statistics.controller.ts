@@ -9,12 +9,20 @@ import { StatisticsService } from './statistics.service';
 
 @ApiTags('Statistics')
 @Controller('statistics')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
+  @Get('public-summary')
+  @ApiOperation({
+    summary: 'Get public non-PII municipal impact counters for home page',
+  })
+  getPublicSummary() {
+    return this.statisticsService.getPublicSummary();
+  }
+
   @Get('overview')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @ApiOperation({
     summary:
       'Get real-time MongoDB aggregation metrics and charts (Admin only)',

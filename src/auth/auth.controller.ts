@@ -5,12 +5,13 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { CookieOptions, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 import {
   type AuthenticatedUser,
   CurrentUser,
@@ -36,10 +37,11 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Email already registered' })
   async register(
     @Body() registerDto: RegisterDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SafeUser> {
     const { user, tokens } = await this.authService.register(registerDto);
-    this.setCookies(res, tokens.accessToken, tokens.refreshToken);
+    this.setCookies(res, req, tokens.accessToken, tokens.refreshToken);
     return user;
   }
 
@@ -50,10 +52,11 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(
     @Body() loginDto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SafeUser> {
     const { user, tokens } = await this.authService.login(loginDto);
-    this.setCookies(res, tokens.accessToken, tokens.refreshToken);
+    this.setCookies(res, req, tokens.accessToken, tokens.refreshToken);
     return user;
   }
 
@@ -64,11 +67,13 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(
     @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
     await this.authService.logout(user.id);
-    res.clearCookie('Authentication', this.cookieOptions);
-    res.clearCookie('Refresh', this.cookieOptions);
+    const options = this.getCookieOptions(req);
+    res.clearCookie('Authentication', options);
+    res.clearCookie('Refresh', options);
     return { message: 'Logged out successfully' };
   }
 
@@ -82,13 +87,14 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(
     @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
     const tokens = await this.authService.refreshTokens(
       user.id,
       user.refreshToken || '',
     );
-    this.setCookies(res, tokens.accessToken, tokens.refreshToken);
+    this.setCookies(res, req, tokens.accessToken, tokens.refreshToken);
     return { message: 'Tokens refreshed' };
   }
 
@@ -103,32 +109,62 @@ export class AuthController {
 
   private setCookies(
     res: Response,
+    req: Request,
     accessToken: string,
     refreshToken: string,
   ): void {
+    const options = this.getCookieOptions(req);
     res.cookie('Authentication', accessToken, {
-      ...this.cookieOptions,
+      ...options,
       httpOnly: true,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
     res.cookie('Refresh', refreshToken, {
-      ...this.cookieOptions,
+      ...options,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
 
-  private get cookieOptions(): CookieOptions {
+  private getCookieOptions(req?: Request): CookieOptions {
     const isProd = this.configService.get<string>('nodeEnv') === 'production';
+    const forwardedProto = req?.headers['x-forwarded-proto'];
+    const isHttps =
+      Boolean(req?.secure) ||
+      forwardedProto === 'https' ||
+      process.env.VERCEL === '1' ||
+      isProd;
+
+    const origin = req?.headers.origin;
+    const host = req?.headers.host;
+    let isCrossSite = false;
+    if (origin && host) {
+      try {
+        isCrossSite = new URL(origin).host !== host;
+      } catch {
+        isCrossSite = false;
+      }
+    }
+
+    // Cross-site HTTPS deployments (e.g. separate Vercel frontend & API)
+    // require SameSite=None and Secure=true for browsers to send cookies.
+    if (isHttps && (isCrossSite || process.env.VERCEL === '1' || isProd)) {
+      return {
+        path: '/',
+        sameSite: 'none',
+        secure: true,
+      };
+    }
+
     const sameSite =
       this.configService.get<'lax' | 'strict' | 'none'>('cookie.sameSite') ||
-      (isProd ? 'none' : 'lax');
-    const secure = this.configService.get<boolean>('cookie.secure') ?? isProd;
+      'lax';
+    const secure = this.configService.get<boolean>('cookie.secure') ?? false;
 
     return {
       path: '/',
-      sameSite,
-      secure,
+      sameSite: sameSite === 'none' && !isHttps ? 'lax' : sameSite,
+      secure: isHttps ? secure : false,
     };
   }
 }

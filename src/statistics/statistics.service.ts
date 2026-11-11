@@ -48,6 +48,24 @@ export class StatisticsService {
     private readonly teamModel: Model<CollectionTeamDocument>,
   ) {}
 
+  async getPublicSummary() {
+    const [totalReports, resolvedReports, activeCrews] = await Promise.all([
+      this.reportModel.countDocuments().exec(),
+      this.reportModel.countDocuments({ status: ReportStatus.RESOLVED }).exec(),
+      this.teamModel.countDocuments({ isActive: true }).exec(),
+    ]);
+
+    const resolutionRate =
+      totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0;
+
+    return {
+      totalReports,
+      resolvedReports,
+      activeCrews,
+      resolutionRate,
+    };
+  }
+
   async getOverview(query: StatisticsQueryDto) {
     const matchFilter: FilterQuery<WasteReportDocument> = {};
     if (query.startDate || query.endDate) {
