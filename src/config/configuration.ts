@@ -15,6 +15,11 @@ export interface AppConfiguration {
     secure: boolean;
     sameSite: 'lax' | 'strict' | 'none';
   };
+  supabase: {
+    url: string;
+    secretKey: string;
+    bucket: string;
+  };
 }
 
 export default (): AppConfiguration => {
@@ -55,6 +60,14 @@ export default (): AppConfiguration => {
     cookie: {
       secure: cookieSecure,
       sameSite: cookieSameSite,
+    },
+    supabase: {
+      url: process.env.SUPABASE_URL || '',
+      secretKey:
+        process.env.SUPABASE_SECRET_KEY ||
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        '',
+      bucket: process.env.SUPABASE_STORAGE_BUCKET || 'waste-reports',
     },
   };
 };

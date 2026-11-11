@@ -64,6 +64,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = HttpStatus.BAD_REQUEST;
       error = 'Bad Request';
       message = `Invalid ${exception.path}: ${String(exception.value)}`;
+    } else if (this.isMulterError(exception)) {
+      status = HttpStatus.BAD_REQUEST;
+      error = 'Bad Request';
+      message =
+        exception.code === 'LIMIT_FILE_SIZE'
+          ? 'Uploaded file exceeds the 5 MB maximum allowed size'
+          : exception.message || 'Invalid file upload';
     } else if (exception instanceof Error) {
       this.logger.error(
         `Unhandled error on ${request.method} ${request.url}: ${exception.message}`,
@@ -88,6 +95,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception !== null &&
       'code' in exception &&
       (exception as MongoDuplicateKeyError).code === 11000
+    );
+  }
+
+  private isMulterError(
+    exception: unknown,
+  ): exception is { name: string; code?: string; message?: string } {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      'name' in exception &&
+      (exception as { name?: string }).name === 'MulterError'
     );
   }
 }

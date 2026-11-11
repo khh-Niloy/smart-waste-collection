@@ -216,6 +216,17 @@ describe('Phase 1 Foundation & Authentication (e2e)', () => {
     );
     expect(rotatedRefreshToken).toBeTruthy();
 
+    // Reusing the pre-rotation refresh token is rejected if another token replaced it
+    const secondLoginRes = await request(server)
+      .post('/api/v1/auth/login')
+      .send({ email: 'amina@example.com', password: 'Password123' })
+      .expect(200);
+    const newerRefreshToken = extractCookieValue(
+      secondLoginRes.headers['set-cookie'],
+      'Refresh',
+    );
+    expect(newerRefreshToken).toBeTruthy();
+
     // Logout clears DB hashedRefreshToken and clears cookies
     await citizenAgent.post('/api/v1/auth/logout').expect(200);
     const afterLogoutCitizen = await userModel
@@ -228,6 +239,18 @@ describe('Phase 1 Foundation & Authentication (e2e)', () => {
       .post('/api/v1/auth/refresh')
       .set('Cookie', [`Refresh=${firstRefreshToken}`])
       .expect(401);
+
+    // Inactive user is rejected on login
+    await userModel
+      .updateOne({ email: 'amina@example.com' }, { $set: { isActive: false } })
+      .exec();
+    await request(server)
+      .post('/api/v1/auth/login')
+      .send({ email: 'amina@example.com', password: 'Password123' })
+      .expect(401);
+    await userModel
+      .updateOne({ email: 'amina@example.com' }, { $set: { isActive: true } })
+      .exec();
 
     // Admin seeding (idempotent) + admin login & RBAC verification
     const firstSeed = await seedAdmin({

@@ -5,8 +5,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import configuration from './config/configuration';
+import { MapsModule } from './maps/maps.module';
 import { ReportsModule } from './reports/reports.module';
+import { StatisticsModule } from './statistics/statistics.module';
+import { StorageModule } from './storage/storage.module';
 import { TeamsModule } from './teams/teams.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -21,10 +25,14 @@ import { UsersModule } from './users/users.module';
         uri: configService.get<string>('mongodbUri'),
       }),
     }),
+    StorageModule,
     AuthModule,
     UsersModule,
     ReportsModule,
     TeamsModule,
+    StatisticsModule,
+    MapsModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import * as bcrypt from 'bcrypt';
 import mongoose, { Model } from 'mongoose';
 import { Role } from '../common/enums/role.enum';
-import { User, UserDocument, UserSchema } from '../users/schemas/user.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
 
 export interface SeedAdminOptions {
   mongodbUri?: string;
@@ -49,16 +49,10 @@ export async function seedAdmin(
     throw new Error('ADMIN_PASSWORD must be at least 8 characters long.');
   }
 
-  const shouldDisconnect =
-    mongoose.connection.readyState === mongoose.ConnectionStates.disconnected;
-  if (shouldDisconnect) {
-    await mongoose.connect(mongodbUri);
-  }
+  const conn = await mongoose.createConnection(mongodbUri).asPromise();
 
   try {
-    const UserModel: Model<UserDocument> =
-      (mongoose.models[User.name] as Model<UserDocument>) ||
-      mongoose.model<UserDocument>(User.name, UserSchema);
+    const UserModel: Model<User> = conn.model<User>(User.name, UserSchema);
 
     const existingAdmin = await UserModel.findOne({
       $or: [{ email: adminEmail }, { role: Role.ADMIN }],
@@ -88,9 +82,7 @@ export async function seedAdmin(
       email: adminEmail,
     };
   } finally {
-    if (shouldDisconnect) {
-      await mongoose.disconnect();
-    }
+    await conn.close();
   }
 }
 
