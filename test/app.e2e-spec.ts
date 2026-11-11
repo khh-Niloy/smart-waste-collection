@@ -288,5 +288,18 @@ describe('Phase 1 Foundation & Authentication (e2e)', () => {
       expect(u.passwordHash).toBeUndefined();
       expect(u.hashedRefreshToken).toBeUndefined();
     }
+
+    // Demo quick sign-in for both CITIZEN and ADMIN
+    const demoCitizenRes = await request(server)
+      .post('/api/v1/auth/demo-login')
+      .send({ role: Role.CITIZEN })
+      .expect(200);
+    expect((demoCitizenRes.body as SafeUserBody).role).toBe(Role.CITIZEN);
+
+    const demoAdminRes = await request(server)
+      .post('/api/v1/auth/demo-login')
+      .send({ role: Role.ADMIN })
+      .expect(200);
+    expect((demoAdminRes.body as SafeUserBody).role).toBe(Role.ADMIN);
   });
 });

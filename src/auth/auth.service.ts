@@ -112,6 +112,68 @@ export class AuthService {
     };
   }
 
+  async demoLogin(role: Role): Promise<{ user: SafeUser; tokens: AuthTokens }> {
+    let user: UserDocument | null = null;
+
+    if (role === Role.ADMIN) {
+      const preferredAdminEmail = (
+        process.env.ADMIN_EMAIL || 'admin@cleancity.local'
+      )
+        .trim()
+        .toLowerCase();
+      user = await this.userModel
+        .findOne({
+          email: preferredAdminEmail,
+          role: Role.ADMIN,
+          isActive: true,
+        })
+        .exec();
+      if (!user) {
+        user = await this.userModel
+          .findOne({ role: Role.ADMIN, isActive: true })
+          .sort({ createdAt: 1 })
+          .exec();
+      }
+    } else {
+      const preferredCitizenEmail = (
+        process.env.DEMO_CITIZEN_EMAIL || 'khhniloy0@gmail.com'
+      )
+        .trim()
+        .toLowerCase();
+      user = await this.userModel
+        .findOne({
+          email: preferredCitizenEmail,
+          role: Role.CITIZEN,
+          isActive: true,
+        })
+        .exec();
+      if (!user) {
+        user = await this.userModel
+          .findOne({ role: Role.CITIZEN, isActive: true })
+          .sort({ createdAt: 1 })
+          .exec();
+      }
+    }
+
+    if (!user) {
+      throw new UnauthorizedException(
+        `No active ${role} account available for quick sign-in`,
+      );
+    }
+
+    const tokens = await this.generateTokens(
+      user._id.toString(),
+      user.email,
+      user.role,
+    );
+    await this.updateRefreshToken(user._id.toString(), tokens.refreshToken);
+
+    return {
+      user: sanitizeUser(user),
+      tokens,
+    };
+  }
+
   async logout(userId: string): Promise<void> {
     await this.userModel
       .findByIdAndUpdate(userId, { $set: { hashedRefreshToken: null } })

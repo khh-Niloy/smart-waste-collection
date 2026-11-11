@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { JwtRefreshGuard } from '../guards/jwt-refresh.guard';
 import { SafeUser } from '../users/utils/sanitize-user.util';
 import { AuthService } from './auth.service';
+import { DemoLoginDto } from './dto/demo-login.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -56,6 +57,23 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<SafeUser> {
     const { user, tokens } = await this.authService.login(loginDto);
+    this.setCookies(res, req, tokens.accessToken, tokens.refreshToken);
+    return user;
+  }
+
+  @Post('demo-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Quick sign-in for demo Citizen or Admin account' })
+  @ApiResponse({ status: 200, description: 'Authenticated successfully' })
+  @ApiResponse({ status: 401, description: 'Account unavailable' })
+  async demoLogin(
+    @Body() demoLoginDto: DemoLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SafeUser> {
+    const { user, tokens } = await this.authService.demoLogin(
+      demoLoginDto.role,
+    );
     this.setCookies(res, req, tokens.accessToken, tokens.refreshToken);
     return user;
   }
