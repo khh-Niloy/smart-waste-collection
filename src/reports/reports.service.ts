@@ -158,15 +158,54 @@ export class ReportsService {
     return this.attachSignedPhotoUrl(savedReport.toObject());
   }
 
-  async getCitizenSummary(citizenId: string) {
+  async getCitizenSummary(
+    citizenId: string,
+    timeframe: 'month' | 'all' = 'all',
+  ) {
     const citizenObjectId = new Types.ObjectId(citizenId);
 
-    const statusAggregation = await this.reportModel
-      .aggregate<{ _id: ReportStatus; count: number }>([
-        { $match: { citizenId: citizenObjectId } },
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-      ])
-      .exec();
+    const matchStage: FilterQuery<WasteReportDocument> = {
+      citizenId: citizenObjectId,
+    };
+
+    if (timeframe === 'month') {
+      const now = new Date();
+      const monthStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+      );
+      matchStage.createdAt = { $gte: monthStart };
+    }
+
+    const [statusAggregation, recentReports, mapReports] = await Promise.all([
+      this.reportModel
+        .aggregate<{ _id: ReportStatus; count: number }>([
+          { $match: matchStage },
+          { $group: { _id: '$status', count: { $sum: 1 } } },
+        ])
+        .exec(),
+      this.reportModel
+        .find({ citizenId: citizenObjectId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate(
+          'assignedTeamId',
+          'teamName contactPerson phone serviceArea isActive',
+        )
+        .lean()
+        .exec(),
+      this.reportModel
+        .find({
+          citizenId: citizenObjectId,
+          latitude: { $ne: null },
+          longitude: { $ne: null },
+        })
+        .sort({ createdAt: -1 })
+        .select(
+          '_id reportCode category priority status address latitude longitude createdAt',
+        )
+        .lean()
+        .exec(),
+    ]);
 
     const countByStatus: Record<string, number> = {};
     let total = 0;
@@ -184,17 +223,6 @@ export class ReportsService {
     const resolved = countByStatus[ReportStatus.RESOLVED] || 0;
     const rejected = countByStatus[ReportStatus.REJECTED] || 0;
 
-    const recentReports = await this.reportModel
-      .find({ citizenId: citizenObjectId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate(
-        'assignedTeamId',
-        'teamName contactPerson phone serviceArea isActive',
-      )
-      .lean()
-      .exec();
-
     return {
       total,
       pending,
@@ -204,6 +232,17 @@ export class ReportsService {
       recentReports: await Promise.all(
         recentReports.map((r) => this.attachSignedPhotoUrl(r)),
       ),
+      mapReports: mapReports.map((r) => ({
+        id: r._id.toString(),
+        reportCode: r.reportCode,
+        category: r.category,
+        priority: r.priority,
+        status: r.status,
+        address: r.address,
+        latitude: r.latitude as number,
+        longitude: r.longitude as number,
+        createdAt: r.createdAt,
+      })),
     };
   }
 

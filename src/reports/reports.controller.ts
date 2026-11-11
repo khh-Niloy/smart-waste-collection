@@ -40,10 +40,17 @@ export class ReportsController {
   @Get('my-summary')
   @Roles(Role.CITIZEN)
   @ApiOperation({
-    summary: 'Get citizen dashboard summary counts and recent complaints',
+    summary:
+      'Get citizen dashboard summary counts, recent complaints, and map markers',
   })
-  getMySummary(@CurrentUser() user: AuthenticatedUser) {
-    return this.reportsService.getCitizenSummary(user.id);
+  getMySummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('timeframe') timeframe?: 'month' | 'all',
+  ) {
+    return this.reportsService.getCitizenSummary(
+      user.id,
+      timeframe === 'month' ? 'month' : 'all',
+    );
   }
 
   @Get('my')
