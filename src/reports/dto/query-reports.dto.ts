@@ -81,3 +81,4 @@ export class QueryReportsDto {
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc';
 }
+

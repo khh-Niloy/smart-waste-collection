@@ -30,3 +30,4 @@ export class CreateTeamDto {
   @MaxLength(150)
   serviceArea: string;
 }
+

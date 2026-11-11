@@ -6,3 +6,4 @@ import { SupabaseStorageService } from './supabase-storage.service';
   exports: [SupabaseStorageService],
 })
 export class StorageModule {}
+
