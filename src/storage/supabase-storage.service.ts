@@ -14,9 +14,7 @@ export class SupabaseStorageService {
   constructor(private readonly configService: ConfigService) {}
 
   private get bucket(): string {
-    return (
-      this.configService.get<string>('supabase.bucket') || 'waste-reports'
-    );
+    return this.configService.get<string>('supabase.bucket') || 'waste-reports';
   }
 
   isConfigured(): boolean {

@@ -17,4 +17,3 @@ import { MapsService } from './maps.service';
   providers: [MapsService],
 })
 export class MapsModule {}
-

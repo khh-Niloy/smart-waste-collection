@@ -30,4 +30,3 @@ export class UpdateTeamDto {
   @MaxLength(150)
   serviceArea?: string;
 }
-

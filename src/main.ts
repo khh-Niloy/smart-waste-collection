@@ -10,14 +10,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  const clientUrls = configService.get<string[]>('cors.clientUrls') || [
-    'http://localhost:3000',
-  ];
-
   app.setGlobalPrefix('api/v1');
   app.enableCors({
-    origin: clientUrls,
+    origin: true,
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+    ],
   });
   app.use(cookieParser());
   app.useGlobalPipes(

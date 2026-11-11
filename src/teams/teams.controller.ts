@@ -62,4 +62,3 @@ export class TeamsController {
     return this.teamsService.updateStatus(id, dto);
   }
 }
-

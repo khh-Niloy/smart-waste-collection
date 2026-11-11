@@ -6,4 +6,3 @@ export class UpdateTeamStatusDto {
   @IsBoolean({ message: 'isActive must be a boolean' })
   isActive: boolean;
 }
-

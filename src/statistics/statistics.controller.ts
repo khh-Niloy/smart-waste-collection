@@ -23,4 +23,3 @@ export class StatisticsController {
     return this.statisticsService.getOverview(query);
   }
 }
-

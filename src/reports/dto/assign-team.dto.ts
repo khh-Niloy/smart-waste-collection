@@ -12,4 +12,3 @@ export class AssignTeamDto {
   @MaxLength(500)
   note?: string;
 }
-

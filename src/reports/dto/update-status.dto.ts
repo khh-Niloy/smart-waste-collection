@@ -15,4 +15,3 @@ export class UpdateReportStatusDto {
   @MaxLength(500, { message: 'Note must not exceed 500 characters' })
   note?: string;
 }
-

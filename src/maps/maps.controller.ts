@@ -23,4 +23,3 @@ export class MapsController {
     return this.mapsService.getReportMarkers(query);
   }
 }
-

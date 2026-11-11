@@ -20,4 +20,3 @@ export class MapReportsQueryDto {
   @IsEnum(ReportPriority)
   priority?: ReportPriority;
 }
-
